@@ -12,6 +12,8 @@ const (
 	// COMANDOS
 	MKDISK string = "mkdisk"
 	FDISK  string = "fdisk"
+	RDISK  string = "rmdisk"
+	MOUNT  string = "mount"
 	// PARAMETROS
 	SIZE string = "-size"
 	FIT  string = "-fit"
@@ -63,6 +65,7 @@ func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
 			}
 			commands.CmdMkdisk(size, fit, unit, path)
 			commands.CreateDisk(size, unit, fit, path)
+
 		} else if strings.ToLower(command) == FDISK {
 			fmt.Println("entro fdisklexer")
 			var size int
@@ -191,7 +194,56 @@ func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
 				tipo = "P"
 			}
 			commands.Fdisk(size, unit, fit, path, name, tipo)
+
+		} else if strings.ToLower(command) == RDISK {
+			var path string
+			for _, part := range parts {
+				params := strings.Split(part, "=")
+				if len(params) > 0 {
+					param := strings.ToLower(params[0])
+
+					if strings.Contains(param, PATH) {
+						path = strings.Trim(params[1], "\"")
+					}
+				}
+			}
+
+			commands.Rdisk(path)
+			fmt.Println()
+
+		} else if strings.ToLower(command) == MOUNT {
+			fmt.Println()
+			var path string
+			var name string
+			for _, part := range parts {
+				params := strings.Split(part, "=")
+				if len(params) > 0 {
+					param := strings.ToLower(params[0])
+
+					if strings.Contains(param, PATH) {
+						path = strings.Trim(params[1], "\"")
+						if path == "" {
+							fmt.Println("Error: path vacio poner  ")
+							respuesta += "Error: path vacio \n"
+							return respuesta
+						}
+					}
+					if strings.Contains(param, NAME) {
+						name = strings.Trim(params[1], "\"")
+						fmt.Println("nombre:" + name)
+						if name == "" {
+							fmt.Println("Error: nombre vacio poner nombre ")
+							respuesta += "Error: nombre vacio poner nombre\n"
+							return respuesta
+						}
+					}
+				}
+			}
+			fmt.Println("entro")
+			commands.MountPartition(path, name)
+
 		}
+
 	}
 	return respuesta
 

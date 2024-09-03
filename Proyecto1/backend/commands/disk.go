@@ -320,3 +320,28 @@ func Fdisk(size int, unit string, fit string, pathValor string, name string, typ
 		return respuesta
 	}
 }
+func Rdisk(pathvalor string) error {
+	// Intenta eliminar el archivo
+	err := os.Remove(pathvalor)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
+func MountPartition(pathvalor string, name string) string {
+	var respuesta string
+
+	//abrir archivo
+	archivo, err := os.OpenFile(pathvalor, os.O_RDWR, 0664)
+	if err != nil {
+
+		fmt.Println("Error: No se pudo abrir el archivo")
+		respuesta += "Error: No se pudo abrir el archivo\n"
+		return respuesta
+	}
+
+	defer archivo.Close()
+	return respuesta
+
+}
