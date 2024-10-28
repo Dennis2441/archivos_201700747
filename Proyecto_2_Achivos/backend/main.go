@@ -145,6 +145,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	functions_test.LoadMount()
+	functions_test.LoadMountedPartitionsFromFile()
+	functions_test.PrintMountedPartitionsList2()
 	functions_test.CargarDatos()
 	functions_test.ListarDiscos()
 	functions_test.ListarParticiones()
@@ -156,10 +159,9 @@ func main() {
 	mux.HandleFunc("/logout", logoutHandler)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowCredentials: true,
+		AllowedOrigins:   []string{"*"}, // Allows all origins
+		AllowCredentials: false,         // Credentials are not allowed
 	})
-
 	handler := c.Handler(mux)
 	http.ListenAndServe(":8080", handler)
 }

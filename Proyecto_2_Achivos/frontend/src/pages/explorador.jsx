@@ -24,7 +24,7 @@ export function Explorador() {
   useEffect(() => {  
     const fetchDiscos = async () => {  
       try {  
-        const response = await fetch('http://localhost:8080/discos', {  
+        const response = await fetch('http://52.14.175.139:8080/discos', {  
           method: 'GET',  
           headers: {  
             'Content-Type': 'application/json',  
@@ -49,7 +49,7 @@ export function Explorador() {
     setCurrentPath(disco.Nombre);  
 
     try {  
-      const response = await fetch(`http://localhost:8080/particiones?rutaDisco=${encodeURIComponent(disco.Ruta)}`, {  
+      const response = await fetch(`http://52.14.175.139:8080/particiones?rutaDisco=${encodeURIComponent(disco.Ruta)}`, {  
         method: 'GET',  
         headers: {  
           'Content-Type': 'application/json',  
@@ -82,7 +82,7 @@ export function Explorador() {
     }  
 
     try {  
-      const response = await fetch('http://localhost:8080/submit', {  
+      const response = await fetch('http://52.14.175.139:8080/submit', {  
         method: 'POST',  
         headers: {  
           'Content-Type': 'application/json',  
@@ -108,7 +108,7 @@ export function Explorador() {
   const handleLogin = async (values) => {  
     setLoading(true);  
     try {  
-      const response = await fetch('http://localhost:8080/login', {  
+      const response = await fetch('http://52.14.175.139:8080/login', {  
         method: 'POST',  
         headers: {  
           'Content-Type': 'application/json',  
@@ -144,7 +144,7 @@ export function Explorador() {
 
   const handleLogout = async () => {  
     try {  
-      const response = await fetch('http://localhost:8080/logout', {  
+      const response = await fetch('http://52.14.175.139:8080/logout', {  
         method: 'POST',  
         headers: {  
           'Content-Type': 'application/json',  

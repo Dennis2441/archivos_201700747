@@ -264,6 +264,66 @@ func ObtenerParticionesJSON() (string, error) {
 	}
 	return string(jsonData), nil
 }
+func SaveMountedPartitionsToFile() {
+	file, err := os.Create("particion_montada.txt")
+	if err != nil {
+		fmt.Println("Error al crear el archivo:", err)
+		return
+	}
+	defer file.Close()
+
+	for _, partition := range mountedPartitionsList {
+		line := fmt.Sprintf("Path: %s, Partition: %d, MountOrder: %d\n", partition.Path, partition.Partition, partition.MountOrder)
+		_, err := file.WriteString(line)
+		if err != nil {
+			fmt.Println("Error al escribir en el archivo:", err)
+			return
+		}
+	}
+
+	fmt.Println("Particiones montadas guardadas en particion_montada.txt")
+}
+
+// Función para cargar las particiones montadas desde un archivo de texto
+func LoadMountedPartitionsFromFile() {
+	file, err := os.Open("particion_montada.txt")
+	if err != nil {
+		fmt.Println("Error al abrir el archivo:", err)
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	mountedPartitionsList = []MountedPartition{} // Limpiar la lista antes de cargar
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Split(line, ", ")
+
+		if len(parts) == 3 {
+			path := strings.TrimPrefix(parts[0], "Path: ")
+			partitionStr := strings.TrimPrefix(parts[1], "Partition: ")
+			mountOrderStr := strings.TrimPrefix(parts[2], "MountOrder: ")
+
+			partition, err1 := strconv.Atoi(partitionStr)
+			mountOrder, err2 := strconv.Atoi(mountOrderStr)
+
+			if err1 == nil && err2 == nil {
+				mountedPartitionsList = append(mountedPartitionsList, MountedPartition{
+					Path:       path,
+					Partition:  partition,
+					MountOrder: mountOrder,
+				})
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error al leer el archivo:", err)
+	} else {
+		fmt.Println("Particiones montadas cargadas desde particion_montada.txt")
+	}
+}
 
 // Letra asignada a cada disco
 type MountedPartition struct {
@@ -275,6 +335,21 @@ type MountedPartition struct {
 
 var mountedPartitionsList []MountedPartition
 
+func PrintMountedPartitionsList2() {
+	if len(mountedPartitionsList) == 0 {
+		fmt.Println("No hay particiones montadas.")
+		return
+	}
+
+	var result []string
+	for _, mounted := range mountedPartitionsList {
+		result = append(result, mounted.Path) // Puedes cambiar `mounted.Path` por cualquier otro campo que desees imprimir
+	}
+
+	// Unir los elementos con comas
+	output := strings.Join(result, ", ")
+	fmt.Println("Particiones montadas: " + output)
+}
 func saveMountedPartitions1() {
 	var data []string
 	for _, disk := range MountedDiskList {
@@ -817,7 +892,132 @@ func create_ext3(n int32, partition structs.Partition, newSuperblock structs.Sup
 	config.GeneralMessage = config.GeneralMessage + "MKFS: FORMATO EXT3 APLICADO  \n"
 	fmt.Println("--------------------------------------------------------------------------")
 }
+func MOUNT1(path string, name string) {
+	var iden string
 
+	file, err := utilities_test.OpenFile(path)
+	if err != nil {
+		config.SetErrorMessage("Error: No se pudo abrir el archivo.")
+		return
+	}
+	defer file.Close()
+
+	var TempMBR structs.MBR
+	// Leer el objeto MBR del archivo binario
+	if err := utilities_test.ReadObject(file, &TempMBR, 0); err != nil {
+		config.SetErrorMessage("Error: No se pudo leer el MBR.")
+		return
+	}
+
+	encontrada := false
+	alfabeto := []byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+	currentMountOrder := len(mountedPartitionsList) // Número de montajes actuales
+
+	// Buscar la partición a montar
+	for i := 0; i < 4; i++ {
+		// Comprobación del nombre de la partición
+		if bytes.Equal(TempMBR.Mbr_particion[i].Part_name[:], []byte(name)) {
+
+			partStatus := TempMBR.Mbr_particion[i].Part_status[:]
+			if partStatus[0] == '1' {
+				config.SetErrorMessage("Error: La partición ya está montada.")
+				return
+			}
+
+			letra := alfabeto[currentMountOrder]
+			ID := "47" + strconv.Itoa(i+1) + string(letra)
+			iden = ID
+
+			// Actualiza el estado de la partición a montada
+			copy(TempMBR.Mbr_particion[i].Part_status[:], "1")
+			copy(TempMBR.Mbr_particion[i].Part_id[:], ID)
+			config.SetGeneralMessage("ID generado: " + ID)
+
+			mountedPartitionsList = append(mountedPartitionsList, MountedPartition{
+				Path:       path,
+				Partition:  i + 1,
+				MountOrder: currentMountOrder,
+			})
+
+			encontrada = true
+			break
+		}
+	}
+
+	// Si no se encontró la partición, verifica si hay una partición extendida
+	if !encontrada {
+		isThereExtended := false
+		var ePartitionStart int
+		for _, partition := range TempMBR.Mbr_particion {
+			if partition.Part_type[0] == 'e' {
+				isThereExtended = true
+				ePartitionStart = int(partition.Part_start)
+				break
+			}
+		}
+
+		if isThereExtended {
+			for {
+				var TempEBR structs.EBR
+				if err := utilities_test.ReadObject(file, &TempEBR, int64(ePartitionStart)); err != nil {
+					config.SetErrorMessage("Error leyendo EBR.")
+					return
+				}
+
+				if TempEBR.Part_s != 0 {
+					if bytes.Equal(TempEBR.Part_name[:], []byte(name)) {
+						if TempEBR.Part_mount[0] == '1' {
+							config.SetErrorMessage("Error: La partición ya está montada.")
+							return
+						}
+						copy(TempEBR.Part_mount[:], "1") // Marcar como montada
+						encontrada = true
+
+						if err := utilities_test.WriteObject(file, TempEBR, int64(ePartitionStart)); err != nil {
+							config.SetErrorMessage("Error escribiendo EBR.")
+							return
+						}
+
+						letra := alfabeto[currentMountOrder]
+						ID := "47" + strconv.Itoa(len(mountedPartitionsList)+1) + string(letra)
+						iden = ID
+
+						mountedPartitionsList = append(mountedPartitionsList, MountedPartition{
+							Path:       path,
+							Partition:  len(mountedPartitionsList) + 1,
+							MountOrder: currentMountOrder,
+						})
+						config.SetGeneralMessage("ID generado para EBR: " + ID)
+						break
+					}
+					ePartitionStart = int(TempEBR.Part_next)
+				} else {
+					break
+				}
+			}
+		}
+	}
+
+	if encontrada {
+		MountedDiskList = append(MountedDiskList, DiskMounted{
+			id:    iden,
+			PATHH: path,
+		})
+
+		saveMountedPartitions()
+		config.SetGeneralMessage("MOUNT: Partición " + name + " montada con éxito.")
+		ModificarIDParticion(name, iden, path)
+		GuardarDatos()
+
+		// Sobrescribir el MBR actualizado
+		if err := utilities_test.WriteObject(file, TempMBR, 0); err != nil {
+			config.SetErrorMessage("Error escribiendo MBR actualizado.")
+			return
+		}
+	} else {
+		config.SetErrorMessage("Error: No se encontró la partición especificada.")
+	}
+}
 func MOUNT(path string, name string) {
 	var iden string
 
@@ -954,6 +1154,7 @@ func MOUNT(path string, name string) {
 		saveMountedPartitions()
 		fmt.Println("--------------------------------------------------------------------------")
 		config.SetGeneralMessage("                        MOUNT: PARTICION " + name + " MONTADA                       \n")
+		SaveMountedPartitionsToFile()
 		ModificarIDParticion(name, iden, path)
 		GuardarDatos()
 		fmt.Println("--------------------------------------------------------------------------")
@@ -1714,7 +1915,7 @@ func MKDISK(path string, size int, fit string, unit string) error {
 	}
 
 	fmt.Println("--------------------------------------------------------------------------")
-	config.SetGeneralMessage("               MKDISK:" + path + " DISCO CREADO CORRECTAMENTE                      \n")
+	config.SetGeneralMessage("               MKDISK:" + path + " DISCO CREADO CORRECTAMENTE                      ")
 	AgregarDisco(path)
 	GuardarDatos()
 	CargarDatos()

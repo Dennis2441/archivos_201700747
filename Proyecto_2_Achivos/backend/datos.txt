@@ -1,3 +1,2 @@
-DISCO|Prueba|Prueba
-DISCO|Disco1.mia|/home/dennis/Disco1.mia
-PARTICION|Particion1|/home/dennis/Disco1.mia|471A
+DISCO|prueba.mia|prueba
+

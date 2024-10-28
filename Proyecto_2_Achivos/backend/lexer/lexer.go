@@ -29,23 +29,28 @@ const (
 	CAT     string = "cat"
 	UNMOUNT string = "unmount"
 	MKDIR   string = "mkdir"
+	REMOVE  string = "remove"
+	EDIT    string = "edit"
+	RENAME  string = "rename"
 
 	// PARAMETROS
-	SIZE   string = "-size"
-	FIT    string = "-fit"
-	UNIT   string = "-unit"
-	PATH   string = "-path"
-	TYPE   string = "-type"
-	NAME   string = "-name"
-	ID     string = "-id"
-	USER   string = "-user"
-	PASS   string = "-pass"
-	GRP    string = "-grp"
-	RUTA   string = "-path_file_ls "
-	R      string = "-r"
-	COUNT1 string = "-cont"
-	DELETE string = "-delete"
-	ADD    string = "-add"
+	SIZE      string = "-size"
+	FIT       string = "-fit"
+	UNIT      string = "-unit"
+	PATH      string = "-path"
+	TYPE      string = "-type"
+	NAME      string = "-name"
+	ID        string = "-id"
+	USER      string = "-user"
+	PASS      string = "-pass"
+	GRP       string = "-grp"
+	RUTA      string = "-path_file_ls "
+	R         string = "-r"
+	COUNT1    string = "-cont"
+	DELETE    string = "-delete"
+	ADD       string = "-add"
+	P         string = "-p"
+	CONTENIDO string = "-contenido"
 )
 
 func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
@@ -802,7 +807,7 @@ func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
 				return ""
 			}
 			fmt.Println(size, path, r, cont)
-			functions_test.MKFILE(path, r, size, cont)
+			functions_test.MKFILE(path, size, cont, r)
 
 		} else if strings.ToLower(command) == CAT {
 
@@ -840,39 +845,40 @@ func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
 			functions_test.UNMOUNT_Partition(id)
 
 		} else if strings.ToLower(command) == MKDIR {
-			var size *int
-			var path *string
-			var r *bool
-			var cont *string
+			var size int
+			var path string
+			var r bool
+			r = false
+			var cont string
 			for _, part := range parts {
 				params := strings.Split(part, "=")
 				if len(params) > 0 {
 					param := strings.ToLower(params[0])
 
 					if strings.Contains(param, COUNT1) {
-						*cont = strings.Trim(params[1], "\"")
+						cont = strings.Trim(params[1], "\"")
 					}
-					if strings.Contains(param, R) {
-						*r = strings.Trim(params[1], "\"") == "true" // Asignar true o false
+					if strings.Contains(param, P) {
+						r = true
 					}
 					if strings.Contains(param, SIZE) {
-						*size, _ = strconv.Atoi(params[1])
+						size, _ = strconv.Atoi(params[1])
 					}
 
 					if strings.Contains(param, PATH) {
-						*path = strings.Trim(params[1], "\"")
+						path = strings.Trim(params[1], "\"")
 					}
 				}
 			}
-			if *path == "" {
+			if path == "" {
 				println("Error: path no puede estar vacio")
 				config.SetErrorMessage("Error: path no puede estar vacio \n")
 				return ""
 			}
 
-			if *cont != "" {
+			if cont != "" {
 				// Verificar si la ruta existe
-				if _, err := os.Stat(*cont); err == nil {
+				if _, err := os.Stat(cont); err == nil {
 					fmt.Println("--------------------------------------------------------------------------")
 					fmt.Println("                        MKFILE: LA RUTA EXISTE                            ")
 					fmt.Println("--------------------------------------------------------------------------")
@@ -891,7 +897,7 @@ func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
 
 			}
 
-			if *size < 0 {
+			if size < 0 {
 				println("Error: size negativo")
 				config.SetErrorMessage("Error: size negativo")
 
@@ -900,6 +906,177 @@ func ParseLine(str string) string { // SOLO RECIBE UNA LINEA
 			fmt.Println(size, path, r, cont)
 			functions_test.MKDIR(path, r)
 
+		} else if strings.ToLower(command) == REMOVE {
+			var size int
+			var path string
+			var r bool
+			r = false
+			var cont string
+			for _, part := range parts {
+				params := strings.Split(part, "=")
+				if len(params) > 0 {
+					param := strings.ToLower(params[0])
+
+					if strings.Contains(param, COUNT1) {
+						cont = strings.Trim(params[1], "\"")
+					}
+					if strings.Contains(param, P) {
+						r = true
+					}
+					if strings.Contains(param, SIZE) {
+						size, _ = strconv.Atoi(params[1])
+					}
+
+					if strings.Contains(param, PATH) {
+						path = strings.Trim(params[1], "\"")
+					}
+				}
+			}
+			if path == "" {
+				println("Error: path no puede estar vacio")
+				config.SetErrorMessage("Error: path no puede estar vacio \n")
+				return ""
+			}
+
+			if cont != "" {
+				// Verificar si la ruta existe
+				if _, err := os.Stat(cont); err == nil {
+					fmt.Println("--------------------------------------------------------------------------")
+					fmt.Println("                        MKFILE: LA RUTA EXISTE                            ")
+					fmt.Println("--------------------------------------------------------------------------")
+					fmt.Println("La ruta existe en el sistema.")
+
+				} else if os.IsNotExist(err) {
+					fmt.Println("Error: La ruta no existe en el sistema.")
+					config.SetErrorMessage("Error: La ruta no existe en el sistema.")
+					return ""
+				} else {
+					fmt.Println("Error: No se logro verificar la ruta:", err)
+					teml := "Error: No se logro verificar la ruta:" + err.Error()
+					config.SetErrorMessage(teml)
+					return ""
+				}
+
+			}
+
+			if size < 0 {
+				println("Error: size negativo")
+				config.SetErrorMessage("Error: size negativo")
+
+				return ""
+			}
+			fmt.Println(size, path, r, cont)
+			functions_test.REMOVE(path)
+
+		} else if strings.ToLower(command) == EDIT {
+			var size int
+			var path string
+			var r bool
+			r = false
+			var cont string
+			for _, part := range parts {
+				params := strings.Split(part, "=")
+				if len(params) > 0 {
+					param := strings.ToLower(params[0])
+
+					if strings.Contains(param, CONTENIDO) {
+						cont = strings.Trim(params[1], "\"")
+					}
+					if strings.Contains(param, R) {
+						r = true
+					}
+					if strings.Contains(param, SIZE) {
+						size, _ = strconv.Atoi(params[1])
+					}
+
+					if strings.Contains(param, PATH) {
+						path = strings.Trim(params[1], "\"")
+					}
+				}
+			}
+			if path == "" {
+				println("Error: path no puede estar vacio")
+				config.SetErrorMessage("Error: path no puede estar vacio \n")
+				return ""
+			}
+
+			if cont != "" {
+				// Verificar si la ruta existe
+				if _, err := os.Stat(cont); err == nil {
+					fmt.Println("--------------------------------------------------------------------------")
+					fmt.Println("                        MKFILE: LA RUTA EXISTE                            ")
+					fmt.Println("--------------------------------------------------------------------------")
+					fmt.Println("La ruta existe en el sistema.")
+
+				} else if os.IsNotExist(err) {
+					fmt.Println("Error: La ruta no existe en el sistema.")
+					config.SetErrorMessage("Error: La ruta no existe en el sistema.")
+					return ""
+				} else {
+					fmt.Println("Error: No se logro verificar la ruta:", err)
+					teml := "Error: No se logro verificar la ruta:" + err.Error()
+					config.SetErrorMessage(teml)
+					return ""
+				}
+
+			}
+
+			if size < 0 {
+				println("Error: size negativo")
+				config.SetErrorMessage("Error: size negativo")
+
+				return ""
+			}
+			fmt.Println(size, path, r, cont)
+			functions_test.EDIT(path, cont)
+
+		} else if strings.ToLower(command) == RENAME {
+			fmt.Println()
+			var path string
+			var name string
+			for _, part := range parts {
+				params := strings.Split(part, "=")
+				if len(params) > 0 {
+					param := strings.ToLower(params[0])
+
+					if strings.Contains(param, PATH) {
+						path = strings.Trim(params[1], "\"")
+						if path == "" {
+							fmt.Println("Error: path vacio poner  ")
+							respuesta += "Error: path vacio \n"
+							return respuesta
+						}
+					}
+					if strings.Contains(param, NAME) {
+						name = strings.Trim(params[1], "\"")
+						fmt.Println("nombre:" + name)
+						if name == "" {
+							fmt.Println("Error: nombre vacio poner nombre ")
+							respuesta += "Error: nombre vacio poner nombre\n"
+							return respuesta
+						}
+					}
+					// Verificación de parámetros que comienzan con '-'
+					if strings.HasPrefix(param, "-") {
+						if strings.ToLower(param) == PATH {
+
+							continue // Ya se ha procesado
+						} else if strings.ToLower(param) == NAME {
+
+							continue // Ya se ha procesado
+						} else {
+							respuesta += fmt.Sprintf("Error: '%s' no es un parámetro válido para MOUNT \n", param)
+							config.ErrorMessage = config.ErrorMessage + respuesta
+							return ""
+						}
+					}
+
+				}
+			}
+			fmt.Println("entro")
+			fmt.Print(path, name)
+			functions_test.RENAME(path, name)
+			//MKDISJ
 		}
 
 	}
